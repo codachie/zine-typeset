@@ -174,9 +174,11 @@ export function injectChapterIds(bodyHtml) {
 }
 
 // 見出し書式のないプレーンテキスト（メモ / Evernote など）を HTML に変換する。
-//   - 行頭 "#" / "＃"（1〜4個）で見出し（# = 章）
+//   - 行頭 "@"  / "＠"  … 書名（扉に表示）
+//   - 行頭 "@@" / "＠＠" … 副題
+//   - 行頭 "#" / "＃"（1〜4個）… 見出し（# = 章）
 //   - 「第一章」「はじめに」など日本語の章見出しは短い行なら自動で見出しに
-//   - 先頭が --- ... --- のフロントマターで title: / subtitle: を指定可
+//   - 先頭を --- ... --- で囲み title: / subtitle: / 書名: / 副題: でも指定可
 //   - 空行があれば「空行＝段落区切り」、無ければ「1行＝1段落」
 export function plainTextToHtml(text) {
   const src = String(text || '').replace(/\r\n?/g, '\n');
@@ -220,6 +222,14 @@ export function plainTextToHtml(text) {
   for (let i = start; i < lines.length; i++) {
     const line = lines[i].trim();
     if (!line) { if (paraMode === 'blank') flush(); continue; }
+    // 行頭 @ = 書名 / @@ = 副題
+    const at = line.match(/^([@＠]{1,2})\s*(.+)$/);
+    if (at) {
+      flush();
+      const cls = at[1].length === 1 ? 'book-title' : 'book-subtitle';
+      out.push(`<p class="${cls}">${escapeHtml(at[2].trim())}</p>`);
+      continue;
+    }
     const md = line.match(/^([#＃]{1,4})\s*(.+)$/);
     if (md) { flush(); out.push(`<h${md[1].length}>${escapeHtml(md[2].trim())}</h${md[1].length}>`); continue; }
     // 段落の途中でない行だけ、日本語の章見出しを自動認識する

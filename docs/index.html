@@ -30,8 +30,12 @@
         <summary style="cursor:pointer;font-size:12px;color:var(--accent)">メモ / Evernote などの文章を貼り付ける</summary>
         <textarea id="pasteText" rows="6" placeholder="ここに本文を貼り付け…"
           style="width:100%;margin-top:6px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit"></textarea>
-        <p class="hint">見出しにしたい行は先頭に <code>#</code> を付ける（例 <code># 第一章</code>）。
-          「第一章」「はじめに」などは自動で見出しになります。見出しが無ければ目次なしの通し組みでプレビューします。</p>
+        <p class="hint">
+          行頭の記号で指定できます：<br>
+          <code>@ 書名</code>／<code>@@ 副題</code> … 扉に表示<br>
+          <code># 章タイトル</code> … 章（<code>##</code> で小見出し）。「第一章」「はじめに」等は記号なしでも章に<br>
+          記号が無ければ、1行目も本文扱い・目次なしの通し組みでプレビューします。
+        </p>
         <button id="btnPaste" type="button" style="padding:6px 10px">この文章でプレビュー</button>
       </details>
 
