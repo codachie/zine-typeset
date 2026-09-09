@@ -58,6 +58,8 @@ export const DEFAULT_SETTINGS = {
   pageNumber: true,
   runningHead: true,
   fullwidthLatin: true, // 縦組みのとき半角英数字を全角に
+  bodyImageMono: false, // 本文中（Word 埋め込み）の画像を白黒に
+  bodyImageMaxWidth: 0, // 本文中の画像の最大幅（%）。0 = 指定なし
   tocTitle: '目次',
   cropMarks: false,
   bleed: '3mm',
@@ -242,6 +244,18 @@ export function plainTextToHtml(text) {
   }
   flush();
   return out.join('\n');
+}
+
+// 別丁（そのページ全体を使う）画像 1 枚ぶんの HTML を組み立てる。
+//   img = { dataUri, mono, widthPct, valign('top'|'center'|'bottom'), caption, page }
+export function buildImageFigure(img) {
+  const w = Math.max(5, Math.min(100, Number(img.widthPct) || 80));
+  const valign = ['top', 'center', 'bottom'].includes(img.valign) ? img.valign : 'center';
+  const cls = ['fig-page', `v-${valign}`, img.mono ? 'mono' : ''].filter(Boolean).join(' ');
+  const cap = img.caption
+    ? `<figcaption>${escapeHtml(img.caption)}</figcaption>`
+    : '';
+  return `<figure class="${cls}"><div class="fig-inner"><img src="${img.dataUri}" alt="${escapeHtml(img.caption || '')}" style="width:${w}%">${cap}</div></figure>`;
 }
 
 // mammoth 変換後 / プレーンテキスト変換後の HTML を、扉・本文・章一覧に整形する。
@@ -495,6 +509,46 @@ h1, h2, h3, h4 { break-after: avoid; }
 img { max-inline-size: 100%; max-block-size: 100%; height: auto; }
 figure { margin: 1.5em 0; text-align: center; }
 figcaption { font-size: 0.85em; color: #555; margin-top: 0.5em; }
+.mono img, img.mono { filter: grayscale(100%); }
+${
+  s.bodyImageMono
+    ? `section.chapter img, section.frontmatter img { filter: grayscale(100%); }\n`
+    : ''
+}${
+  s.bodyImageMaxWidth
+    ? `section.chapter img, section.frontmatter img { max-inline-size: ${Math.max(10, Math.min(100, Number(s.bodyImageMaxWidth)))}%; }\n`
+    : ''
+}
+/* 別丁（1ページを丸ごと使う）画像。縦組みの本でも図版ページは横基準で扱う。
+   table / table-cell + vertical-align で天地位置を決める（組版エンジンで安定）。 */
+figure.fig-page {
+  writing-mode: horizontal-tb;
+  direction: ltr;
+  break-before: page;
+  break-after: page;
+  column-span: all;
+  string-set: chaptertitle "";
+  margin: 0;
+  padding: 0;
+  display: table;
+  width: 100%;
+  height: 94vh;
+}
+figure.fig-page .fig-inner {
+  display: table-cell;
+  vertical-align: middle;
+  text-align: center;
+}
+figure.fig-page.v-top .fig-inner { vertical-align: top; }
+figure.fig-page.v-bottom .fig-inner { vertical-align: bottom; }
+figure.fig-page img { display: block; margin: 0 auto; max-width: 100%; max-height: 84vh; height: auto; }
+figure.fig-page figcaption {
+  writing-mode: horizontal-tb;
+  text-align: center;
+  margin-top: 0.8em;
+  font-size: 8pt;
+  color: #555;
+}
 
 /* ---- 目次 ---- */
 nav.toc { break-after: page; }
