@@ -356,6 +356,30 @@ export function buildTheme(s) {
     .filter(Boolean)
     .join('\n');
 
+  // 章タイトル（h1）の位置・大きさ。
+  //   縦組み … 段数によらず上揃え・少し小さめ（段抜きしない）
+  //   横組み … 1段は中央寄せ・大きめ（章扉風）／2段以上は中央寄せ・小さめ・段抜きしない
+  const chapterHeadingRule = vertical
+    ? `
+/* 縦組み：章タイトルは上揃え・少し小さめ・段抜きしない */
+section.chapter > h1 {
+  column-span: none;
+  text-align: start;
+  font-size: 1.3em;
+  margin-block: 0.8em 2.2em;
+  margin-inline: 0;
+}`
+    : cols > 1
+      ? `
+/* 横組み${cols}段：章タイトルは中央寄せ・少し小さめ・段抜きしない */
+section.chapter > h1 {
+  column-span: none;
+  text-align: center;
+  font-size: 1.3em;
+  margin: 0.8em 0 2.2em;
+}`
+      : '';
+
   // 段組みは本文（section.chapter）だけに適用する。扉・目次・奥付は1段のまま。
   const columnRules =
     cols > 1
@@ -365,21 +389,8 @@ section.chapter {
   column-count: ${cols};
   column-gap: ${s.columnGap || '9mm'};
   column-fill: auto;
-}
-/* ${cols}段：章タイトルは段抜きせず1段目の中に、少し小さめに */
-section.chapter > h1 {
-  column-span: none;
-  font-size: 1.3em;
-${
-  vertical
-    ? `  text-align: start;            /* 縦組み：上揃え */
-  margin-block: 0.8em 2.2em;
-  margin-inline: 0;`
-    : `  text-align: center;          /* 横組み：中央寄せ */
-  margin: 0.8em 0 2.2em;`
-}
-}`
-      : '';
+}${chapterHeadingRule}`
+      : chapterHeadingRule;
 
   const tcy = vertical
     ? `
