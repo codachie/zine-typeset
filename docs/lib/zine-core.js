@@ -173,12 +173,77 @@ export function injectChapterIds(bodyHtml) {
   return { html, chapters };
 }
 
-// mammoth 変換後の HTML を、扉・本文・章一覧に整形する。
+// 見出し書式のないプレーンテキスト（メモ / Evernote など）を HTML に変換する。
+//   - 行頭 "#" / "＃"（1〜4個）で見出し（# = 章）
+//   - 「第一章」「はじめに」など日本語の章見出しは短い行なら自動で見出しに
+//   - 先頭が --- ... --- のフロントマターで title: / subtitle: を指定可
+//   - 空行があれば「空行＝段落区切り」、無ければ「1行＝1段落」
+export function plainTextToHtml(text) {
+  const src = String(text || '').replace(/\r\n?/g, '\n');
+  const lines = src.split('\n');
+
+  let title = '';
+  let subtitle = '';
+  let start = 0;
+  if (lines[0] && lines[0].trim() === '---') {
+    let end = -1;
+    for (let i = 1; i < lines.length; i++) {
+      if (lines[i].trim() === '---') { end = i; break; }
+    }
+    if (end > 0) {
+      for (let i = 1; i < end; i++) {
+        const m = lines[i].match(/^\s*(title|subtitle|書名|副題)\s*[:：]\s*(.+?)\s*$/i);
+        if (m) {
+          if (/title|書名/i.test(m[1])) title = m[2];
+          else subtitle = m[2];
+        }
+      }
+      start = end + 1;
+    }
+  }
+
+  const CHAP =
+    /^(?:序章|終章|序|跋|プロローグ|エピローグ|はじめに|おわりに|あとがき|まえがき|第[0-9０-９一二三四五六七八九十百千]+[章話節部編巻])(?:[　\s].*)?$/;
+
+  const bodyText = lines.slice(start).join('\n');
+  const paraMode = /\n[ \t]*\n/.test(bodyText) ? 'blank' : 'line';
+
+  const out = [];
+  if (title) {
+    out.push(`<p class="book-title">${escapeHtml(title)}</p>`);
+    if (subtitle) out.push(`<p class="book-subtitle">${escapeHtml(subtitle)}</p>`);
+  }
+  let buf = [];
+  const flush = () => {
+    if (buf.length) { out.push(`<p>${escapeHtml(buf.join(''))}</p>`); buf = []; }
+  };
+  for (let i = start; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) { if (paraMode === 'blank') flush(); continue; }
+    const md = line.match(/^([#＃]{1,4})\s*(.+)$/);
+    if (md) { flush(); out.push(`<h${md[1].length}>${escapeHtml(md[2].trim())}</h${md[1].length}>`); continue; }
+    // 段落の途中でない行だけ、日本語の章見出しを自動認識する
+    if (buf.length === 0 && line.length <= 30 && CHAP.test(line)) {
+      out.push(`<h1>${escapeHtml(line)}</h1>`);
+      continue;
+    }
+    if (paraMode === 'line') out.push(`<p>${escapeHtml(line)}</p>`);
+    else buf.push(line);
+  }
+  flush();
+  return out.join('\n');
+}
+
+// mammoth 変換後 / プレーンテキスト変換後の HTML を、扉・本文・章一覧に整形する。
 export function transformManuscript(rawHtml) {
   let html = normalizeHeadingLevels(rawHtml);
   html = splitOverlongHeadings(html);
   const { bookTitle, titlepageHtml, rest } = extractTitlepage(html);
-  const withSections = wrapChapters(rest.trim());
+  let withSections = wrapChapters(rest.trim());
+  // 見出しが1つも無いときも、本文を1つの章として扱う（段組み・改ページの対象にする）
+  if (!/<section class="chapter"/.test(withSections)) {
+    withSections = `<section class="chapter">\n${withSections}\n</section>`;
+  }
   const { html: bodyHtml, chapters } = injectChapterIds(withSections);
   const paragraphs = (bodyHtml.match(/<p[ >]/g) || []).length;
   const extraTitles = (bodyHtml.match(/<p class="book-title">/g) || []).length;

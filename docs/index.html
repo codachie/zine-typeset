@@ -22,8 +22,19 @@
   <div class="panel">
     <fieldset>
       <legend>原稿</legend>
-      <input type="file" id="file" accept=".docx">
-      <p class="hint">Google ドキュメントは「ファイル → ダウンロード → Microsoft Word (.docx)」で書き出してから選択。</p>
+      <input type="file" id="file" accept=".docx,.txt,.md,.markdown,text/plain">
+      <p class="hint">Word（.docx）／ テキスト（.txt・.md）を選択。Google ドキュメントは
+        「ファイル → ダウンロード → Microsoft Word (.docx)」で書き出し。</p>
+
+      <details style="margin:8px 0">
+        <summary style="cursor:pointer;font-size:12px;color:var(--accent)">メモ / Evernote などの文章を貼り付ける</summary>
+        <textarea id="pasteText" rows="6" placeholder="ここに本文を貼り付け…"
+          style="width:100%;margin-top:6px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit"></textarea>
+        <p class="hint">見出しにしたい行は先頭に <code>#</code> を付ける（例 <code># 第一章</code>）。
+          「第一章」「はじめに」などは自動で見出しになります。見出しが無ければ目次なしの通し組みでプレビューします。</p>
+        <button id="btnPaste" type="button" style="padding:6px 10px">この文章でプレビュー</button>
+      </details>
+
       <p class="hint"><a href="#" id="useSample">サンプル原稿で試す</a></p>
       <div id="report"></div>
       <div id="warn" class="warnbox" hidden></div>

@@ -6,13 +6,14 @@
 
 import {
   FONT_PRESETS, SIZE_PRESETS, DEFAULT_SETTINGS, WORD_STYLE_MAP,
-  transformManuscript, buildTocHtml, buildTheme, buildColophonHtml, assembleBook,
+  transformManuscript, plainTextToHtml, buildTocHtml, buildTheme, buildColophonHtml, assembleBook,
 } from './lib/zine-core.js';
 
 const $ = (id) => document.getElementById(id);
 const VIEWER = 'vendor/vivliostyle-viewer/index.html';
 
-let docxBuffer = null;   // アップロードされた .docx の ArrayBuffer
+// 原稿ソース：'sample' / 'docx'(ArrayBuffer) / 'text'(文字列)
+let source = { kind: 'sample', data: null };
 let lastBlobUrl = null;
 
 const SAMPLE_HTML = `
@@ -106,13 +107,19 @@ function collectSettings() {
 
 // ---- 組版 -------------------------------------------------------
 async function toManuscriptHtml() {
-  if (!docxBuffer) return SAMPLE_HTML;
-  const { value, messages } = await window.mammoth.convertToHtml(
-    { arrayBuffer: docxBuffer },
-    { styleMap: WORD_STYLE_MAP },
-  );
-  window.__mammothMessages = messages;
-  return value;
+  window.__mammothMessages = [];
+  if (source.kind === 'docx') {
+    const { value, messages } = await window.mammoth.convertToHtml(
+      { arrayBuffer: source.data },
+      { styleMap: WORD_STYLE_MAP },
+    );
+    window.__mammothMessages = messages;
+    return value;
+  }
+  if (source.kind === 'text') {
+    return plainTextToHtml(source.data);
+  }
+  return SAMPLE_HTML;
 }
 
 async function build({ forPrint = false } = {}) {
@@ -203,11 +210,27 @@ async function toPdf() {
 $('file').addEventListener('change', async (e) => {
   const f = e.target.files[0];
   if (!f) return;
-  docxBuffer = await f.arrayBuffer();
-  if (!$('title').value.trim()) { /* 表題は build 時に自動補完 */ }
+  if (/\.docx$/i.test(f.name)) {
+    source = { kind: 'docx', data: await f.arrayBuffer() };
+  } else {
+    // .txt / .md / その他テキスト
+    source = { kind: 'text', data: await f.text() };
+  }
   build();
 });
-$('useSample').addEventListener('click', (e) => { e.preventDefault(); docxBuffer = null; $('file').value = ''; build(); });
+$('btnPaste').addEventListener('click', () => {
+  const txt = $('pasteText').value.trim();
+  if (!txt) { alert('本文を貼り付けてください。'); return; }
+  source = { kind: 'text', data: txt };
+  $('file').value = '';
+  build();
+});
+$('useSample').addEventListener('click', (e) => {
+  e.preventDefault();
+  source = { kind: 'sample', data: null };
+  $('file').value = '';
+  build();
+});
 $('sizePreset').addEventListener('change', () => {
   $('sizeCustomRow').hidden = $('sizePreset').value !== '__custom';
 });
