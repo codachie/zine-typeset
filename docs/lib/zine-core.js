@@ -212,8 +212,15 @@ export function buildColophonHtml(s) {
     String(v ?? '').replace(/[&<>]/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
   const yearMatch = String(c.pubDate || '').match(/\d{4}/);
   const year = yearMatch ? yearMatch[0] : String(new Date().getFullYear());
-  const copyright =
+  // 著作権表示：入力があればその文言、なければ「© 発行年 著者」。
+  // 先頭に "Copyright" を付ける（すでに付いていれば重複させない）。
+  const copyRaw =
     (c.copyright && c.copyright.trim()) || (s.author ? `© ${year} ${s.author}` : '');
+  const copyright = copyRaw
+    ? /^copyright\b/i.test(copyRaw)
+      ? copyRaw
+      : `Copyright ${copyRaw}`
+    : '';
   const rows = [
     ['発行日', [c.pubDate, c.edition].filter((x) => x && String(x).trim()).join('　')],
     ['著　者', s.author],
@@ -293,11 +300,13 @@ export function buildTheme(s) {
   const fullwidth =
     vertical && s.fullwidthLatin !== false
       ? `
-/* 縦組み：半角英数字を全角表示に自動調整 */
-:is(p, li, dd, blockquote, h1, h2, h3, h4, .book-title, .book-subtitle) {
+/* 縦組み：半角英数字を全角表示に自動調整（目次・奥付・縦中横は除外） */
+:is(p, blockquote, h1, h2, h3, h4, .book-title, .book-subtitle) {
   text-transform: full-width;
 }
-.tcy, .colophon, .colophon * { text-transform: none; }
+.tcy, .colophon, .colophon *, nav.toc, nav.toc *, nav[role="doc-toc"], nav[role="doc-toc"] * {
+  text-transform: none;
+}
 `
       : '';
 
@@ -395,9 +404,15 @@ nav.toc h2, nav[role="doc-toc"] h2 {
 nav.toc a, nav[role="doc-toc"] a { text-decoration: none; color: inherit; }
 nav.toc ol, nav[role="doc-toc"] ol { list-style: none; padding: 0; margin: 0; }
 nav.toc li, nav[role="doc-toc"] li { margin: 0.9em 0; text-indent: 0; }
+/* 目次のページ数（自作の nav.toc のみ。CLI の自動目次には付けない） */
 nav.toc a::after {
-  content: leader('・') target-counter(attr(href), page);
+  content: ${vertical
+    ? `target-counter(attr(href), page)`
+    : `leader('・') target-counter(attr(href), page)`};
   color: #666;
+${vertical ? `  text-combine-upright: all;  /* ページ数は横書き（縦中横）で */
+  text-transform: none;
+  margin-block-start: 0.6em;` : ''}
 }
 
 /* ---- 引用・強調 ---- */
