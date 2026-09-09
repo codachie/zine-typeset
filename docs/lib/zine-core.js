@@ -281,12 +281,17 @@ export function buildTheme(s) {
     .filter(Boolean)
     .join('\n');
 
+  // 段組みは本文（section.chapter）だけに適用する。扉・目次・奥付は1段のまま。
   const columnRules =
     cols > 1
       ? `
+/* 本文のみ ${cols} 段組み（扉・目次・奥付は1段） */
+section.chapter {
   column-count: ${cols};
   column-gap: ${s.columnGap || '9mm'};
-  column-fill: auto;`
+  column-fill: auto;
+}
+section.chapter > h1 { column-span: all; }`
       : '';
 
   const tcy = vertical
@@ -324,7 +329,7 @@ ${marginBoxes}
   font-family: ${bodyFont};
   font-size: ${fontSize};
   line-height: ${lineHeight};
-  letter-spacing: ${letterSpacing};${columnRules}
+  letter-spacing: ${letterSpacing};
   text-align: justify;
   line-break: strict;
   word-break: normal;
@@ -337,6 +342,7 @@ ${marginBoxes}
 }
 
 body { margin: 0; }
+${columnRules}
 
 p { margin: 0; text-indent: 1em; }
 :is(h1, h2, h3, h4, .book-title, .book-subtitle) + p { text-indent: 0; }
