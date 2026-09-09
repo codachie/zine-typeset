@@ -356,22 +356,18 @@ section.chapter {
   column-gap: ${s.columnGap || '9mm'};
   column-fill: auto;
 }
-${
-  vertical
-    ? `/* 縦組み${cols}段：章タイトルは段抜き＆上段の本文と上揃え */
-section.chapter > h1 {
-  column-span: all;
-  text-align: start;
-  margin-block: 0 1.8em;
-  margin-inline: 0;
-}`
-    : `/* 横組み${cols}段：章タイトルは段抜きせず1段目の中に、中央寄せで少し小さめに */
+/* ${cols}段：章タイトルは段抜きせず1段目の中に、少し小さめに */
 section.chapter > h1 {
   column-span: none;
-  text-align: center;
   font-size: 1.3em;
-  margin: 0.8em 0 2.2em;
-}`
+${
+  vertical
+    ? `  text-align: start;            /* 縦組み：上揃え */
+  margin-block: 0.8em 2.2em;
+  margin-inline: 0;`
+    : `  text-align: center;          /* 横組み：中央寄せ */
+  margin: 0.8em 0 2.2em;`
+}
 }`
       : '';
 
