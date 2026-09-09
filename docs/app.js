@@ -137,13 +137,12 @@ async function build({ forPrint = false } = {}) {
     lastBlobUrl = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
 
     // blob URL は素のまま渡す（encode すると Viewer が相対パス扱いして 404 になる）
-    // spread=spread で常に見開き2ページ表示。
-    // ページの進み方向は本文の writing-mode から自動判定される：
-    //   縦組み(vertical-rl) → 右開き → 右が1ページ目、左が2ページ目
-    //   横組み(horizontal)  → 左開き → 左が1ページ目、右が2ページ目
+    // renderAllPages=true …… 目次のページ数(target-counter)は全ページ組んで初めて
+    //   確定するため、常に全ページ描画する。大きい本は数秒〜十数秒かかる。
+    // spread=true …… 常に見開き2ページ表示。ページの進み方向は本文の
+    //   writing-mode から自動：縦組み=右開き(右が1p目) / 横組み=左開き(左が1p目)
     const hash =
-      `#src=${lastBlobUrl}` +
-      `&bookMode=false&renderAllPages=${forPrint ? 'true' : 'false'}&spread=true`;
+      `#src=${lastBlobUrl}&bookMode=false&renderAllPages=true&spread=true`;
     $('viewer').src = `${VIEWER}?t=${Date.now()}${hash}`;
 
     // レポート
@@ -156,8 +155,12 @@ async function build({ forPrint = false } = {}) {
     if (warns.length) { $('warn').hidden = false; $('warn').textContent = warns.join('\n'); }
     else { $('warn').hidden = true; }
 
-    $('buildInfo').textContent =
+    const summary =
       `${s.size} ／ ${s.direction === 'vertical' ? '縦書き' : '横書き'} ／ ${s.columns}段組 ／ ${s.fontSize}`;
+    $('buildInfo').textContent = `組版中…　${summary}`;
+    waitForViewerComplete().then((pages) => {
+      $('buildInfo').textContent = pages ? `全 ${pages} ページ　${summary}` : summary;
+    });
     return forPrint;
   } finally {
     setBusy(false);
@@ -168,22 +171,31 @@ function setBusy(on) {
   for (const b of document.querySelectorAll('button')) b.disabled = on;
 }
 
-// 全ページ描画で読み込み → 完了を待って印刷
-async function toPdf() {
-  await build({ forPrint: true });
+// ビューアが全ページ組み終える（status=complete）まで待つ。総ページ数を返す。
+function waitForViewerComplete(timeoutMs = 120000) {
   const iframe = $('viewer');
   const started = Date.now();
-  await new Promise((resolve) => {
+  return new Promise((resolve) => {
     const tick = () => {
       let status = '';
-      try { status = iframe.contentWindow.document.body.getAttribute('data-vivliostyle-viewer-status') || ''; }
-      catch { /* まだ読み込み中 */ }
-      if (status === 'complete' || Date.now() - started > 60000) resolve();
-      else setTimeout(tick, 400);
+      let pages = 0;
+      try {
+        const d = iframe.contentWindow.document;
+        status = d.body.getAttribute('data-vivliostyle-viewer-status') || '';
+        pages = d.querySelectorAll('[data-vivliostyle-page-container]').length;
+      } catch { /* 読み込み中 */ }
+      if (status === 'complete' || Date.now() - started > timeoutMs) resolve(pages);
+      else setTimeout(tick, 500);
     };
     setTimeout(tick, 800);
   });
-  try { iframe.contentWindow.focus(); iframe.contentWindow.print(); }
+}
+
+// 全ページ描画の完了を待って印刷
+async function toPdf() {
+  await build({ forPrint: true });
+  await waitForViewerComplete();
+  try { $('viewer').contentWindow.focus(); $('viewer').contentWindow.print(); }
   catch { alert('右のビューア右上の印刷アイコンから「PDFで保存」を選んでください。'); }
 }
 
