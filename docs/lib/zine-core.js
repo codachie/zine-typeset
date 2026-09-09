@@ -247,15 +247,21 @@ export function plainTextToHtml(text) {
 }
 
 // 別丁（そのページ全体を使う）画像 1 枚ぶんの HTML を組み立てる。
-//   img = { dataUri, mono, widthPct, valign('top'|'center'|'bottom'), caption, page }
+//   img = { dataUri, mono, fit('width'|'height'), sizePct, valign('top'|'center'|'bottom'), caption, page }
+//   画像は常に元の縦横比のまま。fit=width なら幅を、fit=height なら高さを sizePct で決め、
+//   もう一方は自動。はみ出さないよう最大サイズで頭打ちにする。
 export function buildImageFigure(img) {
-  const w = Math.max(5, Math.min(100, Number(img.widthPct) || 80));
+  const n = Math.max(5, Math.min(100, Number(img.sizePct ?? img.widthPct) || 80));
+  const fit = img.fit === 'height' ? 'height' : 'width';
   const valign = ['top', 'center', 'bottom'].includes(img.valign) ? img.valign : 'center';
   const cls = ['fig-page', `v-${valign}`, img.mono ? 'mono' : ''].filter(Boolean).join(' ');
   const cap = img.caption
     ? `<figcaption>${escapeHtml(img.caption)}</figcaption>`
     : '';
-  return `<figure class="${cls}"><div class="fig-inner"><img src="${img.dataUri}" alt="${escapeHtml(img.caption || '')}" style="width:${w}%">${cap}</div></figure>`;
+  // fit=height: 数値はページ高さに対する割合。ページ内の版面高さ ≒ 94vh。
+  const style =
+    fit === 'height' ? `height:${(n * 0.94).toFixed(1)}vh` : `width:${n}%`;
+  return `<figure class="${cls}"><div class="fig-inner"><img src="${img.dataUri}" alt="${escapeHtml(img.caption || '')}" style="${style}">${cap}</div></figure>`;
 }
 
 // mammoth 変換後 / プレーンテキスト変換後の HTML を、扉・本文・章一覧に整形する。
@@ -541,7 +547,17 @@ figure.fig-page .fig-inner {
 }
 figure.fig-page.v-top .fig-inner { vertical-align: top; }
 figure.fig-page.v-bottom .fig-inner { vertical-align: bottom; }
-figure.fig-page img { display: block; margin: 0 auto; max-width: 100%; max-height: 84vh; height: auto; }
+/* 幅か高さの片方だけを inline style で指定し、もう一方は auto ＝ 比率維持。
+   版面からはみ出さないよう max で頭打ち。 */
+figure.fig-page img {
+  display: block;
+  margin: 0 auto;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 90vh;
+  object-fit: contain;
+}
 figure.fig-page figcaption {
   writing-mode: horizontal-tb;
   text-align: center;

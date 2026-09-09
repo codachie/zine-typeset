@@ -17,7 +17,7 @@ const VIEWER = 'vendor/vivliostyle-viewer/index.html';
 let source = { kind: 'sample', data: null };
 let lastBlobUrl = null;
 
-// 別丁画像：{ id, name, dataUri, page, mono, widthPct, valign, caption }
+// 別丁画像：{ id, name, dataUri, page, mono, fit('width'|'height'), sizePct, valign, caption }
 let images = [];
 
 const norm = (s) => String(s || '').replace(/\s+/g, '');
@@ -250,7 +250,10 @@ function renderImgList() {
       <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:4px 8px;align-items:center;font-size:11px;color:var(--muted)">
         <label>ページ <input type="number" min="1" class="im-page" value="${im.page || ''}" style="width:54px"></label>
         <label>色 <select class="im-mono"><option value="0"${im.mono ? '' : ' selected'}>カラー</option><option value="1"${im.mono ? ' selected' : ''}>白黒</option></select></label>
-        <label>幅% <input type="number" min="5" max="100" step="5" class="im-w" value="${im.widthPct || 80}" style="width:54px"></label>
+        <label>基準 <select class="im-fit">
+          <option value="width"${im.fit !== 'height' ? ' selected' : ''}>幅</option>
+          <option value="height"${im.fit === 'height' ? ' selected' : ''}>高さ</option></select></label>
+        <label>サイズ% <input type="number" min="5" max="100" step="5" class="im-size" value="${im.sizePct || im.widthPct || 80}" style="width:54px"></label>
         <label>配置 <select class="im-v">
           <option value="top"${im.valign === 'top' ? ' selected' : ''}>上</option>
           <option value="center"${im.valign !== 'top' && im.valign !== 'bottom' ? ' selected' : ''}>中央</option>
@@ -264,7 +267,8 @@ function renderImgList() {
     const apply = () => {
       images[i].page = +row.querySelector('.im-page').value || 0;
       images[i].mono = row.querySelector('.im-mono').value === '1';
-      images[i].widthPct = +row.querySelector('.im-w').value || 80;
+      images[i].fit = row.querySelector('.im-fit').value;
+      images[i].sizePct = +row.querySelector('.im-size').value || 80;
       images[i].valign = row.querySelector('.im-v').value;
       images[i].caption = row.querySelector('.im-cap').value;
     };
@@ -354,7 +358,8 @@ $('imgFile').addEventListener('change', async (e) => {
     });
     images.push({
       id: (crypto.randomUUID && crypto.randomUUID()) || String(Math.random()),
-      name: f.name, dataUri, page: 0, mono: false, widthPct: 80, valign: 'center', caption: '',
+      name: f.name, dataUri, page: 0, mono: false,
+      fit: 'width', sizePct: 80, valign: 'center', caption: '',
     });
   }
   e.target.value = '';
