@@ -102,6 +102,8 @@
       <div class="row"><label>柱・ノンブル</label><div class="val">
         <label style="width:auto"><input type="checkbox" id="runningHead"> 柱</label>
         <label style="width:auto"><input type="checkbox" id="pageNumber"> ノンブル</label></div></div>
+      <div class="row"><label>縦組みの英数字</label><div class="val">
+        <label style="width:auto"><input type="checkbox" id="fwLatin"> 半角を全角にする</label></div></div>
       <div class="row"><label>入稿用</label><div class="val">
         <label style="width:auto"><input type="checkbox" id="cropMarks"> トンボ＋塗り足し</label></div></div>
       <div class="row"><label>書名</label><div class="val"><input type="text" id="title"></div></div>
@@ -185,6 +187,7 @@ async function loadState() {
   $('mT').value = m.t; $('mO').value = m.o; $('mB').value = m.b; $('mN').value = m.n;
   $('runningHead').checked = S.runningHead !== false;
   $('pageNumber').checked = S.pageNumber !== false;
+  $('fwLatin').checked = S.fullwidthLatin !== false;
   $('cropMarks').checked = !!S.cropMarks;
   $('title').value = S.title || '';
   $('author').value = S.author || '';
@@ -228,6 +231,7 @@ function collect() {
     margin: `${+$('mT').value}mm ${+$('mO').value}mm ${+$('mB').value}mm ${+$('mN').value}mm`,
     runningHead: $('runningHead').checked,
     pageNumber: $('pageNumber').checked,
+    fullwidthLatin: $('fwLatin').checked,
     cropMarks: $('cropMarks').checked,
     title: $('title').value,
     author: $('author').value,

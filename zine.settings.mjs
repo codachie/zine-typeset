@@ -43,6 +43,9 @@ export default {
   // 柱（各ページ上部の章タイトル）
   runningHead: true,
 
+  // 縦組みのとき、本文の半角英数字を全角表示に自動変換する
+  fullwidthLatin: true,
+
   // 目次の見出し
   tocTitle: "目次",
 

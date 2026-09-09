@@ -71,6 +71,9 @@ export default {
   // 柱（各ページ上部の章タイトル）
   runningHead: ${s.runningHead !== false},
 
+  // 縦組みのとき、半角英数字を全角表示に
+  fullwidthLatin: ${s.fullwidthLatin !== false},
+
   // 目次の見出し
   tocTitle: ${q(s.tocTitle || '目次')},
 

@@ -53,6 +53,7 @@ function initForm() {
   $('mT').value = m.t; $('mO').value = m.o; $('mB').value = m.b; $('mN').value = m.n;
   $('runningHead').checked = s.runningHead;
   $('pageNumber').checked = s.pageNumber;
+  $('fwLatin').checked = s.fullwidthLatin;
   $('title').value = '';
   $('author').value = '';
   const c = s.colophon;
@@ -88,6 +89,7 @@ function collectSettings() {
   s.margin = `${+$('mT').value}mm ${+$('mO').value}mm ${+$('mB').value}mm ${+$('mN').value}mm`;
   s.runningHead = $('runningHead').checked;
   s.pageNumber = $('pageNumber').checked;
+  s.fullwidthLatin = $('fwLatin').checked;
   s.title = $('title').value.trim();
   s.author = $('author').value.trim();
   s.colophon = {
@@ -135,9 +137,13 @@ async function build({ forPrint = false } = {}) {
     lastBlobUrl = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
 
     // blob URL は素のまま渡す（encode すると Viewer が相対パス扱いして 404 になる）
+    // spread=spread で常に見開き2ページ表示。
+    // ページの進み方向は本文の writing-mode から自動判定される：
+    //   縦組み(vertical-rl) → 右開き → 右が1ページ目、左が2ページ目
+    //   横組み(horizontal)  → 左開き → 左が1ページ目、右が2ページ目
     const hash =
       `#src=${lastBlobUrl}` +
-      `&bookMode=false&renderAllPages=${forPrint ? 'true' : 'false'}&spread=false`;
+      `&bookMode=false&renderAllPages=${forPrint ? 'true' : 'false'}&spread=true`;
     $('viewer').src = `${VIEWER}?t=${Date.now()}${hash}`;
 
     // レポート

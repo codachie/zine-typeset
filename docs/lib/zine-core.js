@@ -57,6 +57,7 @@ export const DEFAULT_SETTINGS = {
   columnGap: '9mm',
   pageNumber: true,
   runningHead: true,
+  fullwidthLatin: true, // 縦組みのとき半角英数字を全角に
   tocTitle: '目次',
   cropMarks: false,
   bleed: '3mm',
@@ -246,6 +247,11 @@ export function buildTheme(s) {
   const lineHeight = s.lineHeight ?? 1.85;
   const letterSpacing = s.letterSpacing ?? '0.04em';
 
+  // 柱・ノンブルは本文が縦組みでも必ず横書きで表示する
+  const marginBoxBase = `
+    writing-mode: horizontal-tb;
+    text-orientation: mixed;
+    text-transform: none;`;
   const marginBoxes = [
     pageNumber &&
       `  @bottom-center {
@@ -253,7 +259,7 @@ export function buildTheme(s) {
     font-family: ${bodyFont};
     font-size: 7pt;
     color: #555;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.1em;${marginBoxBase}
   }`,
     runningHead &&
       `  @top-center {
@@ -262,7 +268,7 @@ export function buildTheme(s) {
     font-size: 6pt;
     color: #999;
     letter-spacing: 0.05em;
-    white-space: nowrap;
+    white-space: nowrap;${marginBoxBase}
   }`,
   ]
     .filter(Boolean)
@@ -279,9 +285,21 @@ export function buildTheme(s) {
   const tcy = vertical
     ? `
 /* 縦中横（半角2桁の数字などを横に並べる）: <span class="tcy">15</span> */
-.tcy { text-combine-upright: all; }
+.tcy { text-combine-upright: all; text-transform: none; }
 `
     : '';
+
+  // 縦組みのとき、本文の半角英数字を全角に自動変換する
+  const fullwidth =
+    vertical && s.fullwidthLatin !== false
+      ? `
+/* 縦組み：半角英数字を全角表示に自動調整 */
+:is(p, li, dd, blockquote, h1, h2, h3, h4, .book-title, .book-subtitle) {
+  text-transform: full-width;
+}
+.tcy, .colophon, .colophon * { text-transform: none; }
+`
+      : '';
 
   return `/* AUTO-GENERATED — direction=${s.direction} size=${s.size} columns=${cols}
    fontSize=${fontSize} lineHeight=${lineHeight} letterSpacing=${letterSpacing} */
@@ -407,7 +425,7 @@ strong { font-weight: 600; }
 .colophon .cl-list dt { flex: none; inline-size: 5em; color: #333; }
 .colophon .cl-list dd { margin: 0; }
 .colophon .cl-copy { text-indent: 0; color: #333; margin: 1.6em 0 1.4em; }
-${tcy}`;
+${tcy}${fullwidth}`;
 }
 
 // ---- 1冊ぶんの HTML へ組み立て --------------------------------
