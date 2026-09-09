@@ -356,7 +356,13 @@ section.chapter {
   column-gap: ${s.columnGap || '9mm'};
   column-fill: auto;
 }
-section.chapter > h1 { column-span: all; }`
+/* ${cols}段組みのとき、章タイトルは段抜き＆上段の本文と上揃え（中央寄せにしない） */
+section.chapter > h1 {
+  column-span: all;
+  text-align: start;
+  margin-block: 0 1.8em;
+  margin-inline: 0;
+}`
       : '';
 
   const tcy = vertical
