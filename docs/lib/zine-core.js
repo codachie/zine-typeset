@@ -356,12 +356,22 @@ section.chapter {
   column-gap: ${s.columnGap || '9mm'};
   column-fill: auto;
 }
-/* ${cols}段組みのとき、章タイトルは段抜き＆上段の本文と上揃え（中央寄せにしない） */
+${
+  vertical
+    ? `/* 縦組み${cols}段：章タイトルは段抜き＆上段の本文と上揃え */
 section.chapter > h1 {
   column-span: all;
   text-align: start;
   margin-block: 0 1.8em;
   margin-inline: 0;
+}`
+    : `/* 横組み${cols}段：章タイトルは段抜きせず1段目の中に、中央寄せで少し小さめに */
+section.chapter > h1 {
+  column-span: none;
+  text-align: center;
+  font-size: 1.3em;
+  margin: 0.8em 0 2.2em;
+}`
 }`
       : '';
 
