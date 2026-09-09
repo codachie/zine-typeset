@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ZINE 組版 操作パネル</title>
+<style>
+  :root { color-scheme: light dark; --bg:#f6f6f4; --panel:#fff; --line:#ddd; --ink:#222; --muted:#666; --accent:#2b6cb0; }
+  @media (prefers-color-scheme: dark){ :root{ --bg:#1c1c1e; --panel:#262629; --line:#3a3a3d; --ink:#eee; --muted:#999; --accent:#63b3ed; } }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin:0; font:14px/1.6 -apple-system,"Hiragino Sans",sans-serif; color:var(--ink); background:var(--bg); }
+  header { padding:10px 16px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+  header h1 { font-size:15px; margin:0; font-weight:700; }
+  header .muted { color:var(--muted); font-size:12px; }
+  .wrap { display:grid; grid-template-columns:360px 1fr; height:calc(100vh - 47px); }
+  @media (max-width:860px){ .wrap{ grid-template-columns:1fr; height:auto; } }
+  .panel { padding:16px; overflow:auto; border-right:1px solid var(--line); }
+  .preview { background:#333; display:flex; flex-direction:column; }
+  .preview iframe { flex:1; width:100%; border:0; background:#333; }
+  .preview .bar { padding:8px 12px; color:#ddd; font-size:12px; background:#2a2a2a; display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+  fieldset { border:1px solid var(--line); border-radius:8px; margin:0 0 14px; padding:12px; background:var(--panel); }
+  legend { padding:0 6px; font-weight:700; font-size:12px; color:var(--muted); }
+  .row { display:flex; align-items:center; gap:8px; margin:8px 0; }
+  .row label { width:96px; flex:none; color:var(--muted); font-size:12px; }
+  .row .val { flex:1; display:flex; gap:6px; align-items:center; }
+  select, input[type=text], input[type=number] { width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--ink); font:inherit; }
+  input[type=number] { width:78px; }
+  .mm { display:flex; gap:6px; }
+  .mm > div { flex:1; text-align:center; }
+  .mm small { display:block; color:var(--muted); font-size:10px; }
+  .btns { display:flex; flex-direction:column; gap:8px; margin:14px 0; }
+  button { padding:10px 12px; border:1px solid var(--line); border-radius:8px; background:var(--panel); color:var(--ink); font:inherit; font-weight:600; cursor:pointer; }
+  button.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+  button:disabled { opacity:.5; cursor:progress; }
+  #log { white-space:pre-wrap; font:11px/1.5 ui-monospace,Menlo,monospace; background:#111; color:#b5e6b5; padding:10px; border-radius:8px; max-height:200px; overflow:auto; }
+  .hint { font-size:11px; color:var(--muted); margin:4px 0 0; }
+  .pill { font-size:11px; padding:2px 8px; border-radius:999px; background:var(--bg); border:1px solid var(--line); }
+</style>
+</head>
+<body>
+<header>
+  <h1>ZINE 組版 操作パネル</h1>
+  <span class="muted">ローカル（localhost）で動作・外部非公開</span>
+  <span id="status" class="pill">読み込み中…</span>
+</header>
+
+<div class="wrap">
+  <div class="panel">
+    <fieldset>
+      <legend>取り込み</legend>
+      <div class="hint" id="inputFiles">input/ フォルダの .docx を確認中…</div>
+      <div class="hint">Google ドキュメントは「ファイル → ダウンロード → Word(.docx)」で書き出し、
+        プロジェクトの <code>input/</code> に置いてから下のボタン。</div>
+      <div class="btns" style="margin-bottom:0">
+        <button id="btnImport">原稿を取り込む（.docx → 本文）</button>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>体裁</legend>
+      <div class="row"><label>綴じ方向</label><div class="val">
+        <select id="direction">
+          <option value="vertical">縦書き・右開き</option>
+          <option value="horizontal">横書き・左開き</option>
+        </select></div></div>
+      <div class="row"><label>判型</label><div class="val">
+        <select id="sizePreset"></select></div></div>
+      <div class="row" id="sizeCustomRow" hidden><label>サイズ</label><div class="val">
+        <input type="text" id="sizeCustom" placeholder="例: 128mm 182mm（幅 高さ）"></div></div>
+      <div class="row"><label>段組み</label><div class="val">
+        <select id="columns"><option value="1">1 段</option><option value="2">2 段</option></select></div></div>
+      <div class="row"><label>フォント</label><div class="val">
+        <select id="fontPreset"></select></div></div>
+      <div class="row"><label>文字サイズ</label><div class="val">
+        <input type="number" id="fontSize" step="0.1" min="6" max="14"> <span class="muted">pt</span></div></div>
+      <div class="row"><label>行送り</label><div class="val">
+        <input type="range" id="lineHeight" min="1.3" max="2.4" step="0.05" style="flex:1">
+        <span id="lineHeightVal" class="muted" style="width:34px;text-align:right"></span></div></div>
+      <div class="row"><label>字間</label><div class="val">
+        <select id="letterSpacing">
+          <option value="0">0（ベタ組）</option>
+          <option value="0.02em">0.02em</option>
+          <option value="0.04em">0.04em</option>
+          <option value="0.06em">0.06em</option>
+          <option value="0.08em">0.08em</option>
+        </select></div></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>余白（mm）</legend>
+      <div class="mm">
+        <div><input type="number" id="mT" min="0" step="1"><small>天</small></div>
+        <div><input type="number" id="mO" min="0" step="1"><small>小口</small></div>
+        <div><input type="number" id="mB" min="0" step="1"><small>地</small></div>
+        <div><input type="number" id="mN" min="0" step="1"><small>ノド</small></div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>その他</legend>
+      <div class="row"><label>柱・ノンブル</label><div class="val">
+        <label style="width:auto"><input type="checkbox" id="runningHead"> 柱</label>
+        <label style="width:auto"><input type="checkbox" id="pageNumber"> ノンブル</label></div></div>
+      <div class="row"><label>入稿用</label><div class="val">
+        <label style="width:auto"><input type="checkbox" id="cropMarks"> トンボ＋塗り足し</label></div></div>
+      <div class="row"><label>書名</label><div class="val"><input type="text" id="title"></div></div>
+      <div class="row"><label>著者</label><div class="val"><input type="text" id="author"></div></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>奥付（最終ページ）</legend>
+      <div class="row"><label>奥付を付ける</label><div class="val">
+        <label style="width:auto"><input type="checkbox" id="clEnabled"> 最終ページに自動作成</label></div></div>
+      <div class="row"><label>発行日</label><div class="val"><input type="text" id="clPubDate" placeholder="2026年9月9日"></div></div>
+      <div class="row"><label>版数</label><div class="val"><input type="text" id="clEdition" placeholder="初版第1刷"></div></div>
+      <div class="row"><label>発行者</label><div class="val"><input type="text" id="clPublisher" placeholder="サークル名・個人名"></div></div>
+      <div class="row"><label>印刷所</label><div class="val"><input type="text" id="clPrinter" placeholder="（同人印刷所など）"></div></div>
+      <div class="row"><label>連絡先</label><div class="val"><input type="text" id="clContact" placeholder="メール / URL / SNS"></div></div>
+      <div class="row"><label>著作権表示</label><div class="val"><input type="text" id="clCopyright" placeholder="空欄なら © 年 著者 を自動"></div></div>
+    </fieldset>
+
+    <div class="btns">
+      <button id="btnPreview" class="primary">プレビュー更新（設定を保存して組み直す）</button>
+      <button id="btnDownload">PDF を書き出す（ダウンロード）</button>
+    </div>
+
+    <div id="log" hidden></div>
+  </div>
+
+  <div class="preview">
+    <div class="bar">
+      <span id="buildInfo">まだ組んでいません</span>
+      <span style="flex:1"></span>
+      <a id="openPdf" href="/api/pdf" target="_blank" style="color:#9cf">別タブで開く</a>
+    </div>
+    <iframe id="pdf" title="組版プレビュー"></iframe>
+  </div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let S = null;          // 現在の設定
+let PRESETS = { font:{}, size:{} };
+
+function parseMargin(str) {
+  const p = String(str||'').trim().split(/\s+/).map(v => parseFloat(v) || 0);
+  const [t=16,o=13,b=18,n=13] = p;
+  return { t, o, b, n };
+}
+function fontPresetKeyFromStack(stack) {
+  for (const [k,v] of Object.entries(PRESETS.font)) if (v.stack === stack) return k;
+  return '';
+}
+function sizePresetKeyFromValue(val) {
+  for (const [k,v] of Object.entries(PRESETS.size)) if (v.value === val) return k;
+  return '';
+}
+
+async function loadState() {
+  const r = await fetch('/api/state'); const st = await r.json();
+  S = st.settings; PRESETS = { font: st.fontPresets, size: st.sizePresets };
+
+  // プリセット <select> を組み立て
+  $('fontPreset').innerHTML =
+    Object.entries(PRESETS.font).map(([k,v]) => `<option value="${k}">${v.label}</option>`).join('') +
+    `<option value="__custom">（カスタム：ファイルの値を保持）</option>`;
+  $('sizePreset').innerHTML =
+    Object.entries(PRESETS.size).map(([k,v]) => `<option value="${k}">${v.label}</option>`).join('') +
+    `<option value="__custom">カスタム（自由入力）</option>`;
+
+  // フォーム反映
+  $('direction').value = S.direction || 'vertical';
+  const sk = sizePresetKeyFromValue(S.size);
+  $('sizePreset').value = sk || '__custom';
+  $('sizeCustom').value = S.size || '';
+  $('sizeCustomRow').hidden = !!sk;
+  $('columns').value = String(S.columns || 1);
+  $('fontPreset').value = fontPresetKeyFromStack(S.fontFamily) || '__custom';
+  $('fontSize').value = parseFloat(S.fontSize) || 8.7;
+  $('lineHeight').value = S.lineHeight || 1.85;
+  $('lineHeightVal').textContent = (S.lineHeight || 1.85).toFixed(2);
+  $('letterSpacing').value = S.letterSpacing || '0';
+  const m = parseMargin(S.margin);
+  $('mT').value = m.t; $('mO').value = m.o; $('mB').value = m.b; $('mN').value = m.n;
+  $('runningHead').checked = S.runningHead !== false;
+  $('pageNumber').checked = S.pageNumber !== false;
+  $('cropMarks').checked = !!S.cropMarks;
+  $('title').value = S.title || '';
+  $('author').value = S.author || '';
+
+  const cl = S.colophon || {};
+  $('clEnabled').checked = cl.enabled !== false;
+  $('clPubDate').value = cl.pubDate || '';
+  $('clEdition').value = cl.edition || '初版第1刷';
+  $('clPublisher').value = cl.publisher || '';
+  $('clPrinter').value = cl.printer || '';
+  $('clContact').value = cl.contact || '';
+  $('clCopyright').value = cl.copyright || '';
+
+  $('inputFiles').textContent = st.inputFiles.length
+    ? `取り込み対象: ${st.inputFiles.join(' , ')}`
+    : 'input/ に .docx がありません。';
+  $('status').textContent = st.pdfReady ? '準備OK' : '未組版';
+
+  if (st.pdfReady) { $('pdf').src = '/api/pdf?v=' + Date.now(); }
+  if (st.lastBuild) showBuild(st.lastBuild);
+}
+
+function showBuild(b) {
+  if (!b) return;
+  $('buildInfo').textContent =
+    `${b.size} / ${b.direction === 'vertical' ? '縦書き' : '横書き'} / ${b.columns}段組 / ${b.fontSize} / 総 ${b.pages ?? '?'} ページ`;
+  $('status').textContent = '総 ' + (b.pages ?? '?') + ' ページ';
+}
+
+function collect() {
+  const sizeKey = $('sizePreset').value;
+  const size = sizeKey === '__custom' ? $('sizeCustom').value.trim() : PRESETS.size[sizeKey].value;
+  const fontKey = $('fontPreset').value;
+  const patch = {
+    direction: $('direction').value,
+    size,
+    columns: Number($('columns').value),
+    fontSize: (parseFloat($('fontSize').value) || 8.7) + 'pt',
+    lineHeight: parseFloat($('lineHeight').value),
+    letterSpacing: $('letterSpacing').value,
+    margin: `${+$('mT').value}mm ${+$('mO').value}mm ${+$('mB').value}mm ${+$('mN').value}mm`,
+    runningHead: $('runningHead').checked,
+    pageNumber: $('pageNumber').checked,
+    cropMarks: $('cropMarks').checked,
+    title: $('title').value,
+    author: $('author').value,
+  };
+  if (fontKey !== '__custom') {
+    patch.fontFamily = PRESETS.font[fontKey].stack;
+    patch.headingFontFamily = PRESETS.font[fontKey].stack;
+  }
+  patch.colophon = {
+    enabled: $('clEnabled').checked,
+    pubDate: $('clPubDate').value.trim(),
+    edition: $('clEdition').value.trim(),
+    publisher: $('clPublisher').value.trim(),
+    printer: $('clPrinter').value.trim(),
+    contact: $('clContact').value.trim(),
+    copyright: $('clCopyright').value.trim(),
+  };
+  return patch;
+}
+
+async function saveSettings() {
+  const r = await fetch('/api/settings', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(collect()),
+  });
+  return r.json();
+}
+
+function setBusy(on, label) {
+  for (const b of document.querySelectorAll('button')) b.disabled = on;
+  $('status').textContent = on ? (label || '処理中…') : $('status').textContent;
+}
+
+async function runJob(url, label) {
+  setBusy(true, label);
+  $('log').hidden = false; $('log').textContent = label + '…\n';
+  try {
+    const r = await fetch(url, { method: 'POST' });
+    const d = await r.json();
+    $('log').textContent = (d.log || d.error || '').trim() || '(出力なし)';
+    if (d.lastBuild) showBuild(d.lastBuild);
+    if (d.ok !== false) $('pdf').src = '/api/pdf?v=' + Date.now();
+    else $('status').textContent = 'エラー（ログ参照）';
+  } catch (e) {
+    $('log').textContent = 'エラー: ' + e.message;
+  } finally {
+    setBusy(false);
+    await loadState();
+  }
+}
+
+$('sizePreset').addEventListener('change', () => {
+  $('sizeCustomRow').hidden = $('sizePreset').value !== '__custom';
+});
+$('lineHeight').addEventListener('input', () => {
+  $('lineHeightVal').textContent = parseFloat($('lineHeight').value).toFixed(2);
+});
+
+$('btnImport').addEventListener('click', async () => {
+  await saveSettings();
+  await runJob('/api/import', '取り込み＋組版');
+});
+$('btnPreview').addEventListener('click', async () => {
+  await saveSettings();
+  await runJob('/api/build', 'プレビュー更新（組版）');
+});
+$('btnDownload').addEventListener('click', async () => {
+  await saveSettings();
+  await runJob('/api/build', 'PDF 書き出し');
+  window.open('/api/pdf/download', '_blank');
+});
+
+loadState();
+</script>
+</body>
+</html>

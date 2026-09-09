@@ -1,0 +1,29 @@
+{
+  "name": "my-project",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "preview": "vivliostyle preview",
+    "pdf": "node scripts/build-pdf.mjs",
+    "import": "node scripts/import-docx.mjs",
+    "app": "node scripts/app.mjs",
+    "web": "node scripts/serve-docs.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/codachie/my-project.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/codachie/my-project/issues"
+  },
+  "homepage": "https://github.com/codachie/my-project#readme",
+  "devDependencies": {
+    "@vivliostyle/cli": "^11.2.0",
+    "mammoth": "^1.12.2",
+    "pdf-lib": "^1.17.1"
+  }
+}

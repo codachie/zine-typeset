@@ -14,3 +14,21 @@ node_modules/
 # Environment
 .env
 .env.local
+
+# Vivliostyle
+.vivliostyle/
+dist/
+themes/generated.css
+
+# 取り込み元の原稿（各自ローカル管理）
+input/*.docx
+
+# 自動生成（奥付など）
+generated/
+
+# web pipeline のテスト出力
+.vivliostyle-webtest/
+
+# 取り込んだ原稿の中身（各自ローカル。公開リポジトリに載せない）
+manuscript/*
+!manuscript/.gitkeep

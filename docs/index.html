@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ZINE 組版プレビュー</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>ZINE 組版プレビュー</h1>
+  <span class="tag">プロトタイプ / 開発中</span>
+  <span class="muted">Google ドキュメント・Word の原稿を、縦書き右開き／横書き左開きでプレビュー</span>
+</header>
+
+<p class="notice">
+  アップロードした原稿は <b>あなたのブラウザの中だけ</b> で処理されます。サーバーには送信されず、どこにも保存されません。
+  ページを閉じればデータは消えます。
+</p>
+
+<div class="wrap">
+  <div class="panel">
+    <fieldset>
+      <legend>原稿</legend>
+      <input type="file" id="file" accept=".docx">
+      <p class="hint">Google ドキュメントは「ファイル → ダウンロード → Microsoft Word (.docx)」で書き出してから選択。</p>
+      <p class="hint"><a href="#" id="useSample">サンプル原稿で試す</a></p>
+      <div id="report"></div>
+      <div id="warn" class="warnbox" hidden></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>体裁</legend>
+      <div class="row"><label>綴じ方向</label><div class="val">
+        <select id="direction">
+          <option value="vertical">縦書き・右開き</option>
+          <option value="horizontal">横書き・左開き</option>
+        </select></div></div>
+      <div class="row"><label>判型</label><div class="val"><select id="sizePreset"></select></div></div>
+      <div class="row" id="sizeCustomRow" hidden><label>サイズ</label><div class="val">
+        <input type="text" id="sizeCustom" placeholder="例: 128mm 182mm（幅 高さ）"></div></div>
+      <div class="row"><label>段組み</label><div class="val">
+        <select id="columns"><option value="1">1 段</option><option value="2">2 段</option></select></div></div>
+      <div class="row"><label>フォント</label><div class="val"><select id="fontPreset"></select></div></div>
+      <div class="row"><label>文字サイズ</label><div class="val">
+        <input type="number" id="fontSize" step="0.1" min="6" max="14"> <span class="muted">pt</span></div></div>
+      <div class="row"><label>行送り</label><div class="val">
+        <input type="range" id="lineHeight" min="1.3" max="2.4" step="0.05" style="flex:1">
+        <span id="lineHeightVal" class="muted" style="width:34px;text-align:right"></span></div></div>
+      <div class="row"><label>字間</label><div class="val">
+        <select id="letterSpacing">
+          <option value="0">0（ベタ組）</option>
+          <option value="0.02em">0.02em</option>
+          <option value="0.04em">0.04em</option>
+          <option value="0.06em">0.06em</option>
+          <option value="0.08em">0.08em</option>
+        </select></div></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>余白（mm）</legend>
+      <div class="mm">
+        <div><input type="number" id="mT" min="0" step="1"><small>天</small></div>
+        <div><input type="number" id="mO" min="0" step="1"><small>小口</small></div>
+        <div><input type="number" id="mB" min="0" step="1"><small>地</small></div>
+        <div><input type="number" id="mN" min="0" step="1"><small>ノド</small></div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>その他</legend>
+      <div class="row"><label>柱・ノンブル</label><div class="val">
+        <label style="width:auto"><input type="checkbox" id="runningHead"> 柱</label>
+        <label style="width:auto"><input type="checkbox" id="pageNumber"> ノンブル</label></div></div>
+      <div class="row"><label>書名</label><div class="val"><input type="text" id="title" placeholder="（原稿の表題から自動）"></div></div>
+      <div class="row"><label>著者</label><div class="val"><input type="text" id="author"></div></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>奥付（最終ページ）</legend>
+      <div class="row"><label>奥付を付ける</label><div class="val">
+        <label style="width:auto"><input type="checkbox" id="clEnabled"> 最終ページに自動作成</label></div></div>
+      <div class="row"><label>発行日</label><div class="val"><input type="text" id="clPubDate" placeholder="2026年9月9日"></div></div>
+      <div class="row"><label>版数</label><div class="val"><input type="text" id="clEdition" placeholder="初版第1刷"></div></div>
+      <div class="row"><label>発行者</label><div class="val"><input type="text" id="clPublisher" placeholder="サークル名・個人名"></div></div>
+      <div class="row"><label>印刷所</label><div class="val"><input type="text" id="clPrinter"></div></div>
+      <div class="row"><label>連絡先</label><div class="val"><input type="text" id="clContact" placeholder="メール / URL / SNS"></div></div>
+      <div class="row"><label>著作権表示</label><div class="val"><input type="text" id="clCopyright" placeholder="空欄なら © 年 著者 を自動"></div></div>
+    </fieldset>
+
+    <div class="btns">
+      <button id="btnBuild" class="primary">プレビュー更新</button>
+      <button id="btnPdf">PDF にする（印刷 → PDFで保存）</button>
+    </div>
+    <p class="hint">PDF は右のビューア右上の印刷アイコンからでも保存できます（保存先で「PDF」を選択）。</p>
+  </div>
+
+  <div class="preview">
+    <div class="bar">
+      <span id="buildInfo">サンプルを表示中</span>
+      <span style="flex:1"></span>
+      <span class="muted">プレビュー描画：Vivliostyle</span>
+    </div>
+    <iframe id="viewer" title="組版プレビュー"></iframe>
+  </div>
+</div>
+
+<script src="vendor/mammoth.browser.min.js"></script>
+<script type="module" src="app.js"></script>
+</body>
+</html>
